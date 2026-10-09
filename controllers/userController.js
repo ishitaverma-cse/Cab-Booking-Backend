@@ -31,15 +31,16 @@ export const createUser = async (req, res) => {
 
   const { data, error } = await supabase
     .from('users')
-    .insert([
-      {
+    .upsert(
+      [{
         clerk_id,
         name,
         email,
-        phone,
+        phone: phone || null,
         role: role || 'user',
-      },
-    ])
+      }],
+      { onConflict: 'clerk_id' }
+    )
     .select()
     .single()
 
