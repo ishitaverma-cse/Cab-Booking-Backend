@@ -1,9 +1,8 @@
-
 import supabase from '../config/supabase.js'
 
 export const getRides = async (req, res) => {
     try {
-        const { clerk_id } = req.query
+        const clerk_id = req.clerkUserId
 
         let query = supabase
             .from('rides')
@@ -60,12 +59,13 @@ export const getRides = async (req, res) => {
 export const createRide = async (req, res) => {
     try {
         const {
-            clerk_id,
             pickup_location,
             drop_location,
             ride_type,
             fare,
         } = req.body
+
+        const clerk_id = req.clerkUserId
 
         if (
             !clerk_id ||
