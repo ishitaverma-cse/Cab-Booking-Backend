@@ -1,4 +1,5 @@
 import supabase from '../config/supabase.js'
+import { sendRideReceiptEmail } from '../utils/emailService.js'
 
 export const getRides = async (req, res) => {
     try {
@@ -133,6 +134,88 @@ export const createRide = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: 'Unable to create ride.',
+        })
+    }
+}
+
+export const sendRideReceipt = async (req, res) => {
+    try {
+        const { rideId } = req.params
+
+        // Find the logged-in user's profile.
+        const { data: user, error: userError } = await supabase
+            .from('users')
+            .select('id, email, name')
+            .eq('clerk_id', req.clerkUserId)
+            .maybeSingle()
+
+        if (userError) throw userError
+
+        if (!user || !user.email) {
+            return res.status(404).json({
+                success: false,
+                message: 'User profile or registered email not found.',
+            })
+        }
+
+        // Only allow the owner of the ride to request its receipt.
+        const { data: ride, error: rideError } = await supabase
+            .from('rides')
+            .select('*')
+            .eq('id', rideId)
+            .eq('user_id', user.id)
+            .maybeSingle()
+
+        if (rideError) throw rideError
+
+        if (!ride) {
+            return res.status(404).json({
+                success: false,
+                message: 'Ride not found.',
+            })
+        }
+
+        if (ride.status !== 'completed') {
+            return res.status(400).json({
+                success: false,
+                message: 'A receipt is available only for completed rides.',
+            })
+        }
+
+        // Find the payment record for this ride, if one exists.
+        const { data: payment, error: paymentError } = await supabase
+            .from('payments')
+            .select('payment_status, payment_method, transaction_id, amount')
+            .eq('ride_id', ride.id)
+            .eq('user_id', user.id)
+            .eq('payment_status', 'paid')
+            .maybeSingle()
+
+        if (paymentError) throw paymentError
+
+        // Email the receipt to the address saved in the user's profile.
+        const emailResult = await sendRideReceiptEmail({
+            to: user.email,
+            ride,
+            payment: payment || {
+                payment_status: 'pending',
+                payment_method: 'Not recorded',
+            },
+        })
+
+        return res.status(200).json({
+            success: true,
+            message: 'Ride receipt emailed successfully.',
+            data: {
+                emailId: emailResult?.id || null,
+            },
+        })
+    } catch (error) {
+        console.error('Send ride receipt error:', error.message)
+
+        return res.status(500).json({
+            success: false,
+            message: 'Unable to email ride receipt. Please try again.',
         })
     }
 }

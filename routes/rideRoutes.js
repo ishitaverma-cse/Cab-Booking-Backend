@@ -1,6 +1,10 @@
 import express from 'express'
 import { getAuth } from '@clerk/express'
-import { getRides, createRide } from '../controllers/rideController.js'
+import {
+    getRides,
+    createRide,
+    sendRideReceipt,
+} from '../controllers/rideController.js'
 import supabase from '../config/supabase.js'
 
 
@@ -22,6 +26,7 @@ const verifyClerkUser = (req, res, next) => {
 
 router.get('/', verifyClerkUser, getRides)
 router.post('/', verifyClerkUser, createRide)
+router.post('/:rideId/receipt', verifyClerkUser, sendRideReceipt)
 
 
 router.get('/stream', verifyClerkUser, async (req, res) => {
@@ -115,6 +120,5 @@ router.get('/stream', verifyClerkUser, async (req, res) => {
         }
     }
 })
-
 
 export default router
