@@ -5,6 +5,11 @@ import {
     createRide,
     sendRideReceipt,
 } from '../controllers/rideController.js'
+import {
+    createReview,
+    getRatingSummary,
+    getMyReviews,
+} from '../controllers/reviewController.js'
 import supabase from '../config/supabase.js'
 
 
@@ -27,6 +32,9 @@ const verifyClerkUser = (req, res, next) => {
 router.get('/', verifyClerkUser, getRides)
 router.post('/', verifyClerkUser, createRide)
 router.post('/:rideId/receipt', verifyClerkUser, sendRideReceipt)
+router.post('/:rideId/review', verifyClerkUser, createReview)
+router.get('/ratings/summary', verifyClerkUser, getRatingSummary)
+router.get('/reviews/mine', verifyClerkUser, getMyReviews)
 
 
 router.get('/stream', verifyClerkUser, async (req, res) => {
