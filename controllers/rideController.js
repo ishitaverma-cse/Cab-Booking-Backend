@@ -7,9 +7,11 @@ export const getRides = async (req, res) => {
 
         let query = supabase
             .from('rides')
-            .select('*')
+            .select(
+                'id, created_at, user_id, pickup_location, drop_location, ride_type, fare, status'
+            )
             .order('created_at', { ascending: false })
-
+            
         // When a Clerk ID is supplied, resolve the user's
         // Supabase UUID and return only their rides.
         if (clerk_id) {

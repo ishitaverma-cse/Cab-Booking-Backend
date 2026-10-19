@@ -14,7 +14,11 @@ const app = express()
 const PORT = process.env.PORT || 5000
 
 // Middleware
-app.use(cors())
+app.use(
+    cors({
+        origin: 'http://localhost:5173',
+    })
+)
 app.use(express.json())
 app.use(clerkMiddleware())
 
@@ -31,27 +35,37 @@ app.get('/', (req, res) => {
     })
 })
 
-
-// Supabase test route
+// Supabase connection test — returns no user data
 app.get('/api/test-supabase', async (req, res) => {
-    const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .limit(1)
+    try {
+        const { error } = await supabase
+            .from('users')
+            .select('id')
+            .limit(1)
 
-    if (error) {
+        if (error) {
+            console.error('Supabase health check failed:', error.message)
+
+            return res.status(500).json({
+                success: false,
+                message: 'Supabase connection check failed.',
+            })
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Supabase connection successful!',
+        })
+    } catch (error) {
+        console.error('Supabase health check error:', error.message)
+
         return res.status(500).json({
             success: false,
-            message: error.message,
+            message: 'Supabase connection check failed.',
         })
     }
-
-    res.json({
-        success: true,
-        message: 'Supabase connection successful! 🚕',
-        data,
-    })
 })
+
 
 // Start server
 app.listen(PORT, () => {

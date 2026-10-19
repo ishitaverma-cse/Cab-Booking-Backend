@@ -1,59 +1,97 @@
 import supabase from '../config/supabase.js'
 
 export const getUsers = async (req, res) => {
-  const { data, error } = await supabase
-    .from('users')
-    .select('*')
-    .order('created_at', { ascending: false })
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .select('id, clerk_id, name, email, phone, role, created_at')
+            .eq('clerk_id', req.clerkUserId)
+            .maybeSingle()
 
-  if (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    })
-  }
+        if (error) {
+            console.error('Get user error:', error.message)
 
-  res.status(200).json({
-    success: true,
-    data,
-  })
+            return res.status(500).json({
+                success: false,
+                message: 'Unable to fetch user profile.',
+            })
+        }
+
+        return res.status(200).json({
+            success: true,
+            data,
+        })
+    } catch (error) {
+        console.error('Get user error:', error.message)
+
+        return res.status(500).json({
+            success: false,
+            message: 'An unexpected error occurred.',
+        })
+    }
 }
 
 export const createUser = async (req, res) => {
-  const { clerk_id, name, email, phone, role } = req.body
+    try {
+        const { name, email, phone } = req.body
 
-  if (!clerk_id || !name || !email) {
-    return res.status(400).json({
-      success: false,
-      message: 'clerk_id, name and email are required',
-    })
-  }
+        if (
+            typeof name !== 'string' ||
+            !name.trim() ||
+            typeof email !== 'string' ||
+            !email.trim()
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: 'Valid name and email are required.',
+            })
+        }
 
-  const { data, error } = await supabase
-    .from('users')
-    .upsert(
-      [{
-        clerk_id,
-        name,
-        email,
-        phone: phone || null,
-        role: role || 'user',
-      }],
-      { onConflict: 'clerk_id' }
-    )
-    .select()
-    .single()
+        if (
+            phone !== undefined &&
+            phone !== null &&
+            typeof phone !== 'string'
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: 'Phone must be a string.',
+            })
+        }
 
-  if (error) {
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    })
-  }
+        const { data, error } = await supabase
+            .from('users')
+            .upsert(
+                [{
+                    clerk_id: req.clerkUserId,
+                    name: name.trim(),
+                    email: email.trim(),
+                    phone: phone?.trim() || null,
+                }],
+                { onConflict: 'clerk_id' }
+            )
+            .select('id, clerk_id, name, email, phone, role, created_at')
+            .single()
 
-  res.status(201).json({
-    success: true,
-    message: 'User created successfully',
-    data,
-  })
+        if (error) {
+            console.error('Create user error:', error.message)
+
+            return res.status(500).json({
+                success: false,
+                message: 'Unable to save user profile.',
+            })
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'User profile saved successfully.',
+            data,
+        })
+    } catch (error) {
+        console.error('Create user error:', error.message)
+
+        return res.status(500).json({
+            success: false,
+            message: 'An unexpected error occurred.',
+        })
+    }
 }

@@ -112,34 +112,21 @@ export const createReview = async (req, res) => {
     }
 }
 
-
 export const getRatingSummary = async (req, res) => {
     try {
-        const { data: reviews, error } = await supabase
-            .from('reviews')
-            .select('rating')
+        const { data, error } = await supabase
+            .rpc('get_rating_summary')
 
         if (error) {
             throw error
         }
 
-        const totalReviews = reviews.length
-
-        const averageRating = totalReviews
-            ? Number(
-                (
-                    reviews.reduce(
-                        (total, review) => total + review.rating,
-                        0
-                    ) / totalReviews
-                ).toFixed(2)
-            )
-            : 0
+        const summary = data?.[0]
 
         return res.status(200).json({
             success: true,
-            averageRating,
-            totalReviews,
+            averageRating: Number(summary?.average_rating ?? 0),
+            totalReviews: Number(summary?.total_reviews ?? 0),
         })
     } catch (error) {
         console.error('Get rating summary error:', error)
@@ -150,6 +137,7 @@ export const getRatingSummary = async (req, res) => {
         })
     }
 }
+
 
 
 export const getMyReviews = async (req, res) => {

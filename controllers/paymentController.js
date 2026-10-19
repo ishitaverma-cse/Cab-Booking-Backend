@@ -258,15 +258,21 @@ export const verifyRazorpayPayment = async (req, res) => {
             razorpay_payment_id
         )
 
+
+        const expectedAmountInPaise = Math.round(Number(payment.amount) * 100)
+
         if (
             razorpayPayment.order_id !== razorpay_order_id ||
-            razorpayPayment.status !== 'captured'
+            razorpayPayment.status !== 'captured' ||
+            razorpayPayment.currency !== 'INR' ||
+            razorpayPayment.amount !== expectedAmountInPaise
         ) {
             return res.status(400).json({
                 success: false,
-                message: 'Payment has not been captured successfully.',
+                message: 'Payment details could not be verified.',
             })
         }
+
 
         const { data: updatedPayment, error: updateError } = await supabase
             .from('payments')
